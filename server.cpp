@@ -16,6 +16,7 @@ int* connectedClientSockets;
 bool* joinedClients;
 bool chatRunning = true;
 char closedMessage[] = "ATTENTION: Chatroom is closed.";
+char** clientNames;
 
 void moderator();
 void acceptNewConnections(int);
@@ -69,12 +70,55 @@ void moderator()
   }
 }
 
+bool isPrivate(char* message, int& privateClientID, char* trueMessage)
+{
+  int i, j;
+  for(i = 0; i < 256; i++)
+  {
+    if(message[i] == '-') break;
+    trueMessage[i] = message[i];
+  }
+  trueMessage[i] = '\0';
+  i++;
+
+  if(!strcmp(trueMessage, "private"))
+  {
+    for(j = 0;i < 256; i++, j++)
+    {
+      if(message[i] == ':') break;
+      trueMessage[j] = message[i];
+    }
+    trueMessage[j] = '\0';
+
+    for(int k = 0; k < MAX_CLIENTS; k++)
+    {
+      if(joinedClients[k] && !strcmp(trueMessage, clientNames[k]))
+      {
+        privateClientID = k;
+        for(j = 0; i < 256; i++, j++)
+        {
+          trueMessage[j] = message[i];
+        }
+        trueMessage[j] = '\0';
+        return true;
+      }
+    }
+    privateClientID = -2;
+    return true;
+  }
+
+  privateClientID = -1;
+  return false;
+}
+
 void communicateWithClient(int clientSocket, int clientID) 
 {
   char recieveBuffer[256];
   char sendBuffer[256];
 
   char clientName[256];
+
+  char trueMessageBuffer[256];
 
   sprintf(sendBuffer, "Please enter your name:");
   send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
@@ -86,6 +130,7 @@ void communicateWithClient(int clientSocket, int clientID)
   joinedClients[clientID] = true;
 
   std::cout << "Client " << clientID + 1 << " joined as " << clientName << std::endl;
+  clientNames[clientID] = clientName;
 
   sprintf(sendBuffer, "SYSTEM MESSAGE: %s has joined the chat.", clientName);
   for(int i = 0; i < MAX_CLIENTS; i++)
@@ -96,9 +141,28 @@ void communicateWithClient(int clientSocket, int clientID)
     }
   }
 
+  int privateClientID = -1;
+
   while(chatRunning)
   {
     while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
+
+    if(isPrivate(recieveBuffer, privateClientID, trueMessageBuffer))
+    {
+      if(privateClientID == -2)
+      {
+        sprintf(sendBuffer, "SYSTEM MESSAGE: Client not found.");
+        send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
+      }
+      else
+      {
+        sprintf(sendBuffer, "PRIVATE MESSAGE FROM %s%s", clientName, trueMessageBuffer);
+        send(connectedClientSockets[privateClientID], sendBuffer, sizeof(sendBuffer), 0);
+      }
+      privateClientID = -1;
+      continue;
+    }
+
     std::cout << "Client " << clientID << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
 
     sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
@@ -136,6 +200,7 @@ int main()
 
   connectedClientSockets = new int[MAX_CLIENTS];
   joinedClients = new bool[MAX_CLIENTS];
+  clientNames = new char*[MAX_CLIENTS];
 
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
