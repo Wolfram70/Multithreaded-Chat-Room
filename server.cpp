@@ -13,6 +13,7 @@
 #define MAX_CLIENTS 10
 
 int* connectedClientSockets;
+bool* joinedClients;
 bool chatRunning = true;
 char closedMessage[] = "ATTENTION: Chatroom is closed.";
 
@@ -73,16 +74,36 @@ void communicateWithClient(int clientSocket, int clientID)
   char recieveBuffer[256];
   char sendBuffer[256];
 
+  char clientName[256];
+
+  sprintf(sendBuffer, "Please enter your name:");
+  send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
+
+  while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
+  strcpy(clientName, recieveBuffer);
+  recieveBuffer[0] = '\0';
+
+  joinedClients[clientID] = true;
+
+  sprintf(sendBuffer, "SYSTEM MESSAGE: %s has joined the chat.", clientName);
+  for(int i = 0; i < MAX_CLIENTS; i++)
+  {
+    if((i != clientID) && joinedClients[i])
+    {
+      send(connectedClientSockets[i], sendBuffer, sizeof(sendBuffer), 0);
+    }
+  }
+
   while(chatRunning)
   {
     while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
     std::cout << "Client " << clientID << " sent: " << recieveBuffer << std::endl;
 
-    sprintf(sendBuffer, "Client %d: %s", clientID, recieveBuffer);
+    sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
     
     for(int i = 0; i < MAX_CLIENTS; i++)
     {
-      if(i != clientID)
+      if((i != clientID) && joinedClients[i])
       {
         send(connectedClientSockets[i], sendBuffer, sizeof(sendBuffer), 0);
       }
@@ -112,6 +133,12 @@ int main()
   listen(listeningSocket, MAX_CLIENTS);
 
   connectedClientSockets = new int[MAX_CLIENTS];
+  joinedClients = new bool[MAX_CLIENTS];
+
+  for(int i = 0; i < MAX_CLIENTS; i++)
+  {
+    joinedClients[i] = false;
+  }
 
   std::thread acceptorThread(acceptNewConnections, listeningSocket);
   std::thread moderatorThread(moderator);
