@@ -33,7 +33,7 @@ void acceptNewConnections(int listeningSocket)
   while(chatRunning)
   {
     connectedClientSockets[clientID] = accept(listeningSocket, (sockaddr*)&clientAddress, &clientAddressLength);
-    std::cout << "Client " << clientID << " connected." << std::endl;
+    std::cout << "Client " << clientID + 1 << " connected." << std::endl;
     clientThreads[clientID] = std::thread(communicateWithClient, connectedClientSockets[clientID], clientID);
     clientThreads[clientID].detach();
     clientID++;
@@ -85,6 +85,8 @@ void communicateWithClient(int clientSocket, int clientID)
 
   joinedClients[clientID] = true;
 
+  std::cout << "Client " << clientID + 1 << " joined as " << clientName << std::endl;
+
   sprintf(sendBuffer, "SYSTEM MESSAGE: %s has joined the chat.", clientName);
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
@@ -97,7 +99,7 @@ void communicateWithClient(int clientSocket, int clientID)
   while(chatRunning)
   {
     while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
-    std::cout << "Client " << clientID << " sent: " << recieveBuffer << std::endl;
+    std::cout << "Client " << clientID << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
 
     sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
     
