@@ -1,3 +1,3 @@
 # Multithreaded-Chat-Room
 
-Building a server to handle multiple clients using multithreading.
+Building a server capable of handling multiple clients using multithreading.
