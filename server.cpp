@@ -136,7 +136,7 @@ void communicateWithClient(int clientSocket, int clientID)
   clientNames[clientID] = clientName;
 
   sprintf(sendBuffer, "\x1b[36m%s has joined the chat.\x1b[0m", clientName);
-  std::cout<<"webajwd"<<clientName;
+  
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
     if((i != clientID) && joinedClients[i])
