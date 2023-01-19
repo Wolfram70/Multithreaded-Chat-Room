@@ -13,7 +13,7 @@
 #define PORT 5000
 
 bool chatRunning = true;
-char closed[] = "ATTENTION: Chatroom is closed.";
+char closed[] = "\x1b[31mATTENTION: Chatroom is closed \x1b[0m";
 
 void sendServer(int clientSocket)
 {
@@ -62,7 +62,12 @@ int main()
   serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
 
   //connect to the server
-  connect(clientSocket, (sockaddr*)&serverAddress, sizeof(serverAddress));
+  int connection_id = connect(clientSocket, (sockaddr*)&serverAddress, sizeof(serverAddress));
+
+  if(connection_id == -1){
+    printf("\x1b[31mConnection to the server couldn't be established\x1b[0m");
+    return -1;
+  }
 
   std::thread sendThread = std::thread(sendServer, clientSocket);
   std::thread recieveThread = std::thread(recieveFromServer, clientSocket);
