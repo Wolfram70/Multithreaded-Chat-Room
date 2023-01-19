@@ -34,7 +34,7 @@ void acceptNewConnections(int listeningSocket)
   while(chatRunning)
   {
     connectedClientSockets[clientID] = accept(listeningSocket, (sockaddr*)&clientAddress, &clientAddressLength);
-    std::cout << "Client " << clientID + 1 << " connected." << std::endl;
+    if(chatRunning) std::cout << "Client " << clientID + 1 << " connected." << std::endl;
     clientThreads[clientID] = std::thread(communicateWithClient, connectedClientSockets[clientID], clientID);
     clientThreads[clientID].detach();
     clientID++;
