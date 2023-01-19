@@ -135,8 +135,8 @@ void communicateWithClient(int clientSocket, int clientID)
 
   clientNames[clientID] = clientName;
 
-  sprintf(sendBuffer, "\x1b[36m%s has joined the chat.\x1b[0m", clientName);
-  
+  sprintf(sendBuffer, "\x1b[33m%s\x1b[0m \x1b[32mhas joined the chat.\x1b[0m", clientName);
+
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
     if((i != clientID) && joinedClients[i])
@@ -144,6 +144,9 @@ void communicateWithClient(int clientSocket, int clientID)
       send(connectedClientSockets[i], sendBuffer, sizeof(sendBuffer), 0);
     }
   }
+
+  char clientNameCopy[256]; 
+  strcpy(clientNameCopy,clientName);
 
   int privateClientID = -1;
 
@@ -155,24 +158,21 @@ void communicateWithClient(int clientSocket, int clientID)
     {
       if(privateClientID == -2)
       {
-        sprintf(sendBuffer, "\x1b[31mSYSTEM MESSAGE: Client not found.\x1b[0m");
+        sprintf(sendBuffer, "\x1b[31mClient not found.\x1b[0m");
         send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
       }
       else
       {
-        sprintf(sendBuffer, "PRIVATE MESSAGE FROM %s%s", clientName, trueMessageBuffer);
+        sprintf(sendBuffer, "\x1b[35mPRIVATE MESSAGE FROM %s: \x1b[0m%s", clientName, trueMessageBuffer+1);
         send(connectedClientSockets[privateClientID], sendBuffer, sizeof(sendBuffer), 0);
       }
       privateClientID = -1;
       continue;
     }
-    printf("\x1b[36mClient \x1b[0m");
-    printf("\x1b[33m%s \x1b[0m",clientName);
-    printf("\x1b[36msent: \x1b[0m");
-    std::cout<<recieveBuffer<<std::endl;
 
-    sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
-    
+    sprintf(sendBuffer, "\x1b[36mClient\x1b[0m \x1b[33m%s\x1b[0m \x1b[36mbroadcasted:\x1b[0m %s",clientNameCopy,recieveBuffer);
+    std::cout<<sendBuffer<<std::endl;
+
     for(int i = 0; i < MAX_CLIENTS; i++)
     {
       if((i != clientID) && joinedClients[i])
@@ -189,7 +189,7 @@ void communicateWithClient(int clientSocket, int clientID)
 int main()
 { 
   sprintf(closedMessage,"\x1b[31mATTENTION: Chatroom is closed \x1b[0m");
-  std::cout<<"Starting server..."<<std::endl;
+  std::cout<<"Initialising server..."<<std::endl;
 
   //creating the socket that listens for connections
   int listeningSocket;
@@ -215,6 +215,8 @@ int main()
   {
     joinedClients[i] = false;
   }
+
+  std::cout<<"Server initialised"<<std::endl;
 
   std::thread acceptorThread(acceptNewConnections, listeningSocket);
   std::thread moderatorThread(moderator);
