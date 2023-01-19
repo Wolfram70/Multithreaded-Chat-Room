@@ -17,10 +17,48 @@ bool* joinedClients;
 bool chatRunning = true;
 char closedMessage[] = "ATTENTION: Chatroom is closed.";
 char** clientNames;
+char* image;
 
 void moderator();
 void acceptNewConnections(int);
 void communicateWithClient(int, int);
+
+void broadcastImage(int clientID)
+{
+  char fileName[256];
+  char sendBuffer[256];
+  int size;
+  strcpy(sendBuffer, "IMAGE");
+
+  //sleep for 10ms to allow server to send message
+  std::this_thread::sleep_for(std::chrono::milliseconds(90));
+  while(recv(connectedClientSockets[clientID], fileName, sizeof(fileName), 0) <= 0);
+  //sleep for 10ms to allow client to send message
+  std::this_thread::sleep_for(std::chrono::milliseconds(90));
+  while(recv(connectedClientSockets[clientID], (void *)&size, sizeof(int), 0) <= 0);
+  //sleep for 10ms to allow client to send message
+  std::this_thread::sleep_for(std::chrono::milliseconds(90));
+  while(recv(connectedClientSockets[clientID], image, 300000, 0) <= 0);
+  std::cout << size << " " << fileName << "end" << std::endl;
+  for(int i = 0; i < MAX_CLIENTS; i++)
+  {
+    if(joinedClients[i] && i != clientID)
+    {
+      send(connectedClientSockets[i], sendBuffer, sizeof(sendBuffer), 0);
+      //sleep for 30ms to allow client to receive message
+      std::this_thread::sleep_for(std::chrono::milliseconds(150));
+      sendBuffer[0] = '\0';
+      sprintf(sendBuffer, "%s sent an image.", clientNames[clientID]);
+      send(connectedClientSockets[i], fileName, sizeof(fileName), 0);
+      //sleep for 30ms to allow client to receive message
+      std::this_thread::sleep_for(std::chrono::milliseconds(150));
+      send(connectedClientSockets[i], (void *)&size, sizeof(int), 0);
+      //sleep for 30ms to allow client to receive message
+      std::this_thread::sleep_for(std::chrono::milliseconds(150));
+      send(connectedClientSockets[i], image, 300000, 0);
+    }
+  }
+}
 
 void acceptNewConnections(int listeningSocket)
 {
@@ -111,6 +149,22 @@ bool isPrivate(char* message, int& privateClientID, char* trueMessage)
   return false;
 }
 
+bool isImage(char* message)
+{
+  char confirmation[256];
+  char largeImage[256] = "IMAGE";
+  int i = 0;
+  while(message[i] != '\0')
+  {
+    if(message[i] == ':') break;
+    confirmation[i] = message[i];
+    i++;
+  }
+  confirmation[i] = '\0';
+  if(!strcmp(confirmation, largeImage)) return true;
+  return false;
+}
+
 void communicateWithClient(int clientSocket, int clientID) 
 {
   char recieveBuffer[256];
@@ -163,6 +217,12 @@ void communicateWithClient(int clientSocket, int clientID)
       continue;
     }
 
+    if(isImage(recieveBuffer))
+    {
+      broadcastImage(clientID);
+      continue;
+    }
+
     std::cout << "Client " << clientID << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
 
     sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
@@ -201,6 +261,7 @@ int main()
   connectedClientSockets = new int[MAX_CLIENTS];
   joinedClients = new bool[MAX_CLIENTS];
   clientNames = new char*[MAX_CLIENTS];
+  image = new char[300000];
 
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
