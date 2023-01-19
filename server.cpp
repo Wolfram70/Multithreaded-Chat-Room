@@ -8,14 +8,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <thread>
+#include <stdlib.h>
 
 #define PORT 5000
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 5
 
 int* connectedClientSockets;
 bool* joinedClients;
 bool chatRunning = true;
-char closedMessage[] = "ATTENTION: Chatroom is closed.";
+char closedMessage[64];
 char** clientNames;
 
 void moderator();
@@ -34,7 +35,6 @@ void acceptNewConnections(int listeningSocket)
   while(chatRunning)
   {
     connectedClientSockets[clientID] = accept(listeningSocket, (sockaddr*)&clientAddress, &clientAddressLength);
-    if(chatRunning) std::cout << "Client " << clientID + 1 << " connected." << std::endl;
     clientThreads[clientID] = std::thread(communicateWithClient, connectedClientSockets[clientID], clientID);
     clientThreads[clientID].detach();
     clientID++;
@@ -49,7 +49,7 @@ void moderator()
   {
     std::cin.getline(input, 256);
 
-    sprintf(moderatorMessage, "Moderator: %s", input);
+    sprintf(moderatorMessage,"\x1b[31mModerator:\x1b[0m %s",input);
 
     if(!strcmp(input, "close"))
     {
@@ -120,7 +120,7 @@ void communicateWithClient(int clientSocket, int clientID)
 
   char trueMessageBuffer[256];
 
-  sprintf(sendBuffer, "Please enter your name:");
+  sprintf(sendBuffer, "\x1b[36mPlease enter your name: \x1b[0m");
   send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
 
   while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
@@ -129,10 +129,14 @@ void communicateWithClient(int clientSocket, int clientID)
 
   joinedClients[clientID] = true;
 
-  std::cout << "Client " << clientID + 1 << " joined as " << clientName << std::endl;
+  printf("\x1b[32mClient %d joined as \x1b[0m",clientID + 1);
+  printf("\x1b[33m%s\x1b[0m",clientName);
+  std::cout<<std::endl;
+
   clientNames[clientID] = clientName;
 
-  sprintf(sendBuffer, "SYSTEM MESSAGE: %s has joined the chat.", clientName);
+  sprintf(sendBuffer, "\x1b[36m%s has joined the chat.\x1b[0m", clientName);
+  std::cout<<"webajwd"<<clientName;
   for(int i = 0; i < MAX_CLIENTS; i++)
   {
     if((i != clientID) && joinedClients[i])
@@ -151,7 +155,7 @@ void communicateWithClient(int clientSocket, int clientID)
     {
       if(privateClientID == -2)
       {
-        sprintf(sendBuffer, "SYSTEM MESSAGE: Client not found.");
+        sprintf(sendBuffer, "\x1b[31mSYSTEM MESSAGE: Client not found.\x1b[0m");
         send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
       }
       else
@@ -163,7 +167,9 @@ void communicateWithClient(int clientSocket, int clientID)
       continue;
     }
 
-    std::cout << "Client " << clientID << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
+    std::cout << "Client " << clientID+1 << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
+    printf("%s",clientName);
+    // printf("\x1b[31mSYSTEM MESSAGE: Client not found.\x1b[0m");
 
     sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
     
@@ -181,7 +187,10 @@ void communicateWithClient(int clientSocket, int clientID)
 }
 
 int main()
-{
+{ 
+  sprintf(closedMessage,"\x1b[31mATTENTION: Chatroom is closed \x1b[0m");
+  std::cout<<"Starting server..."<<std::endl;
+
   //creating the socket that listens for connections
   int listeningSocket;
   listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
