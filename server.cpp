@@ -166,10 +166,10 @@ void communicateWithClient(int clientSocket, int clientID)
       privateClientID = -1;
       continue;
     }
-
-    std::cout << "Client " << clientID+1 << "("<< clientName <<") sent: " << recieveBuffer << std::endl;
-    printf("%s",clientName);
-    // printf("\x1b[31mSYSTEM MESSAGE: Client not found.\x1b[0m");
+    printf("\x1b[36mClient \x1b[0m");
+    printf("\x1b[33m%s \x1b[0m",clientName);
+    printf("\x1b[36msent: \x1b[0m");
+    std::cout<<recieveBuffer<<std::endl;
 
     sprintf(sendBuffer, "%s: %s", clientName, recieveBuffer);
     
