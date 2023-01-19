@@ -125,7 +125,13 @@ void communicateWithClient(int clientSocket, int clientID)
 
   while(recv(clientSocket, recieveBuffer, sizeof(recieveBuffer), 0) <= 0);
   strcpy(clientName, recieveBuffer);
-  recieveBuffer[0] = '\0';
+
+  recieveBuffer[0] = '\0'; 
+
+  sprintf(sendBuffer,"\x1b[32mYour name has been set to\x1b[0m \x1b[33m%s\x1b[0m\x1b[32m. You can start conversing!!\x1b[0m",clientName);
+  send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
+
+  sendBuffer[0] = '\0';
 
   joinedClients[clientID] = true;
 
