@@ -91,7 +91,7 @@ void moderator()
     }
     else if(!strcmp(keyword, "timeout"))
     {
-      char *timeoutClient = strtok(NULL, " ");
+      char *timeoutClient = strtok(NULL, "|");
       char *timeoutTime = strtok(NULL, "\0");
       int timeoutTimeInt = atoi(timeoutTime);
 
