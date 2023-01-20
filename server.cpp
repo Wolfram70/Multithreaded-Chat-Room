@@ -44,10 +44,15 @@ void acceptNewConnections(int listeningSocket)
 void moderator()
 {
   char input[256];
+  char inputCopy[256];
   char moderatorMessage[256];
+  char leave[] = "!leavechatroom";
   while(chatRunning)
   {
     std::cin.getline(input, 256);
+    strcpy(inputCopy, input);
+
+    char* keyword = strtok(inputCopy, " ");
 
     sprintf(moderatorMessage,"\x1b[31mModerator:\x1b[0m %s",input);
 
@@ -60,11 +65,57 @@ void moderator()
       }
       break;
     }
+    else if(!strcmp(input, "list"))
+    {
+      for(int i = 0; i < MAX_CLIENTS; i++)
+      {
+        if(joinedClients[i])
+        {
+          std::cout << "\x1b[31m" <<clientNames[i] << "\x1b[0m" << std::endl;
+        }
+      }
+    }
+    else if(!strcmp(keyword, "ban"))
+    {
+      char* bannedClient = strtok(NULL, "\0");
+      for(int i = 0; i < MAX_CLIENTS; i++)
+      {
+        if(!strcmp(bannedClient, clientNames[i]))
+        {
+          send(connectedClientSockets[i], leave, sizeof(leave), 0);
+          std::cout << "\x1b[31m" << bannedClient << " has been banned.\x1b[0m" << std::endl;
+          joinedClients[i] = false;
+          break;
+        }
+      }
+    }
+    else if(!strcmp(keyword, "timeout"))
+    {
+      char *timeoutClient = strtok(NULL, " ");
+      char *timeoutTime = strtok(NULL, "\0");
+      int timeoutTimeInt = atoi(timeoutTime);
+
+      char timeoutMessage[256] = "!timeout ";
+      strcat(timeoutMessage, timeoutTime);
+
+      for(int i = 0; i < MAX_CLIENTS; i++)
+      {
+        if(!strcmp(timeoutClient, clientNames[i]))
+        {
+          send(connectedClientSockets[i], timeoutMessage, sizeof(timeoutMessage), 0);
+          std::cout << "\x1b[31m" << timeoutClient << " has been timed out for " << timeoutTime << " seconds.\x1b[0m" << std::endl;
+          break;
+        }
+      }
+    }
     else
     {
       for(int i = 0; i < MAX_CLIENTS; i++)
       {
-        send(connectedClientSockets[i], moderatorMessage, sizeof(moderatorMessage), 0);
+        if(joinedClients[i])
+        {
+          send(connectedClientSockets[i], moderatorMessage, sizeof(moderatorMessage), 0);
+        }
       }
     }
   }
@@ -154,6 +205,8 @@ void communicateWithClient(int clientSocket, int clientID)
   char clientNameCopy[256]; 
   strcpy(clientNameCopy,clientName);
 
+  char leaveChat[] = "!leavechatroom";
+
   int privateClientID = -1;
 
   while(chatRunning)
@@ -176,7 +229,23 @@ void communicateWithClient(int clientSocket, int clientID)
       continue;
     }
 
-    sprintf(sendBuffer, "\x1b[36mClient\x1b[0m \x1b[33m%s\x1b[0m \x1b[36mbroadcasted:\x1b[0m %s",clientNameCopy,recieveBuffer);
+    if(!strcmp(recieveBuffer, leaveChat))
+    {
+      joinedClients[clientID] = false;
+      sprintf(sendBuffer, "\x1b[31mYou have left the chat.\x1b[0m");
+      send(clientSocket, sendBuffer, sizeof(sendBuffer), 0);
+      sprintf(sendBuffer, "\x1b[33m%s\x1b[0m \x1b[31mhas left the chat.\x1b[0m", clientName);
+      for(int i = 0; i < MAX_CLIENTS; i++)
+      {
+        if((i != clientID) && joinedClients[i])
+        {
+          send(connectedClientSockets[i], sendBuffer, sizeof(sendBuffer), 0);
+        }
+      }
+      return;
+    }
+
+    sprintf(sendBuffer, "\x1b[33m%s:\x1b[0m\x1b[0m %s",clientName, recieveBuffer);
     std::cout<<sendBuffer<<std::endl;
 
     for(int i = 0; i < MAX_CLIENTS; i++)
@@ -236,6 +305,13 @@ int main()
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
   close(listeningSocket);
+  /*for(int i = 0; i < MAX_CLIENTS; i++)
+  {
+    if(joinedClients[i])
+    {
+      close(connectedClientSockets[i]);
+    }
+  }*/
 
   return 0;
 }
