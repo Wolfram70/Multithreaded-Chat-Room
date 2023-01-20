@@ -56,6 +56,9 @@ void moderator()
 
     sprintf(moderatorMessage,"\x1b[31mModerator:\x1b[0m %s",input);
 
+    int flag = 0;
+    int ind = 1;
+
     if(!strcmp(input, "close"))
     {
       chatRunning = false;
@@ -65,14 +68,21 @@ void moderator()
       }
       break;
     }
+    
     else if(!strcmp(input, "list"))
     {
       for(int i = 0; i < MAX_CLIENTS; i++)
       {
         if(joinedClients[i])
         {
-          std::cout << "\x1b[31m" <<clientNames[i] << "\x1b[0m" << std::endl;
+          flag = 1;
+          std::cout << "\x1b[31m[" << ind << "]\x1b[0m " << clientNames[i] << std::endl;
+          ind++;
         }
+      }
+      if (flag == 0)
+      {
+        std::cout << "\x1b[31mNo clients connected.\x1b[0m" << std::endl;
       }
     }
     else if(!strcmp(keyword, "ban"))
